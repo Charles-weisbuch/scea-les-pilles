@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Suivi Irrigation</title>
+<meta name="theme-color" content="#1F3D2B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Irrigation">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+
+<style>
+  :root{
+    --green-deep: #1F3D2B;
+    --green-mid: #2E5541;
+    --gold: #C9A227;
+    --gold-soft: #E4C862;
+    --water: #3E7C8C;
+    --cream: #F5F1E8;
+    --card: #FFFFFF;
+    --ink: #22291F;
+    --ink-soft: #5C6B5D;
+    --danger: #A43B3B;
+    --radius: 18px;
+    --shadow: 0 2px 10px rgba(31,61,43,0.10), 0 8px 24px rgba(31,61,43,0.08);
+  }
+
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body{
+    margin:0; padding:0; height:100%;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    overscroll-behavior-y: contain;
+  }
+
+  #app{
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    background: var(--green-deep);
+    color: var(--cream);
+    padding: calc(20px + env(safe-area-inset-top)) 20px 22px 20px;
+    position: relative;
+  }
+  header .eyebrow{
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold-soft);
+    font-weight: 600;
+    margin: 0 0 4px 0;
+  }
+  header h1{
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 24px;
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+  header .drop{
+    position: absolute;
+    right: 20px;
+    top: calc(18px + env(safe-area-inset-top));
+    width: 30px; height: 30px;
+    opacity: 0.9;
+  }
+  .back-row{
+    display:flex; align-items:center; gap:10px;
+    margin-bottom: 8px;
+  }
+  .back-btn{
+    background: rgba(245,241,232,0.14);
+    border: none;
+    color: var(--cream);
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    font-size: 18px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .back-btn:active{ background: rgba(245,241,232,0.26); }
+
+  /* ---------- Main ---------- */
+  main{ flex:1; padding: 20px 20px 32px 20px; }
+
+  /* Screen: parcel selection */
+  .subtitle{
+    color: var(--ink-soft);
+    font-size: 15px;
+    margin: 0 0 18px 0;
+  }
+  .parcel-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .parcel-card{
+    background: var(--card);
+    border: none;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px 14px;
+    min-height: 118px;
+    display:flex;
+    flex-direction: column;
+    align-items:flex-start;
+    justify-content: space-between;
+    cursor: pointer;
+    text-align: left;
+    transition: transform 0.12s ease;
+  }
+  .parcel-card:active{ transform: scale(0.96); }
+  .parcel-card .mark{
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--gold);
+    margin-bottom: 14px;
+  }
+  .parcel-card .name{
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--green-deep);
+  }
+
+  /* Screen: form */
+  .field{ margin-bottom: 16px; }
+  .field label{
+    display:block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+    letter-spacing: 0.01em;
+  }
+  .field .unit{
+    font-weight: 400;
+    color: var(--ink-soft);
+    font-size: 12px;
+  }
+  .field input{
+    width:100%;
+    border: 1.5px solid #E1DACB;
+    background: var(--card);
+    border-radius: 12px;
+    padding: 14px 14px;
+    font-size: 17px;
+    color: var(--ink);
+    font-family: inherit;
+  }
+  .field input:focus{
+    outline: none;
+    border-color: var(--green-mid);
+  }
+  .row-2{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .field.volume input{
+    border-color: var(--water);
+    background: #F1F7F8;
+    font-weight: 600;
+    color: var(--water);
+  }
+  .field.volume label{ color: var(--water); }
+
+  .save-btn{
+    width:100%;
+    background: var(--green-deep);
+    color: var(--cream);
+    border:none;
+    border-radius: 14px;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin-top: 6px;
+    cursor:pointer;
+  }
+  .save-btn:active{ background: var(--green-mid); }
+  .save-btn:disabled{ opacity: 0.55; }
+
+  .status{
+    margin-top: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align:center;
+    min-height: 20px;
+  }
+  .status.ok{ color: var(--green-mid); }
+  .status.err{ color: var(--danger); }
+  .status.pending{ color: var(--ink-soft); }
+
+  /* Session log */
+  .log{
+    margin-top: 28px;
+    border-top: 1px solid #E1DACB;
+    padding-top: 16px;
+  }
+  .log h2{
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-soft);
+    margin: 0 0 10px 0;
+    font-weight: 700;
+  }
+  .log-item{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    background: var(--card);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    box-shadow: var(--shadow);
+  }
+  .log-item .l-date{ color: var(--ink-soft); }
+  .log-item .l-vol{ color: var(--water); font-weight: 700; }
+
+  .setup-banner{
+    background: #FBE9C6;
+    color: #6B4A0E;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 18px;
+  }
+  .setup-banner code{
+    background: rgba(0,0,0,0.06);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ============================================================
+   CONFIGURATION — à modifier avant de mettre en ligne l'appli
+   ============================================================ */
+// Colle ici l'URL de ton déploiement Google Apps Script (voir instructions).
+// Exemple : "https://script.google.com/macros/s/AKfycb.../exec"
+const SCRIPT_URL = "COLLE_ICI_TON_URL_APPS_SCRIPT";
+
+// Structure réelle du classeur : chaque onglet a 2 ou 3 lignes d'irrigation.
+// "ligne" = numéro du bloc de colonnes dans l'onglet (1, 2 ou 3) — utilisé par le script Apps Script
+// pour retrouver automatiquement les bonnes colonnes, quel que soit le libellé affiché ici.
+const TABS = [
+  { label: "La Fontaine", lignes: [
+      { ligne: 1, label: "Ligne 1" },
+      { ligne: 2, label: "Ligne 2" },
+      { ligne: 3, label: "Ligne 3" }
+  ]},
+  { label: "La Baume", lignes: [
+      { ligne: 1, label: "Ligne 1", caption: "Grande parcelle" },
+      { ligne: 2, label: "Ligne 2", caption: "Sud" },
+      { ligne: 3, label: "Ligne 3", caption: "Petite parcelle (bas)" }
+  ]},
+  { label: "Pilles", lignes: [
+      { ligne: 1, label: "Ligne 1" },
+      { ligne: 2, label: "Ligne 2" },
+      { ligne: 3, label: "Ligne 3" }
+  ]},
+  { label: "Bousquet et Riou", lignes: [
+      { ligne: 1, label: "Bousquet", caption: "Ligne 1" },
+      { ligne: 2, label: "Riou", caption: "Ligne 2" }
+  ]}
+];
+/* ============================================================ */
+
+const app = document.getElementById("app");
+let currentTab = null;
+let currentLigne = null;
+let sessionLog = []; // {date, vol} — mémoire de session uniquement, non persistée
+
+function todayISO(){
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  const local = new Date(d.getTime() - off*60000);
+  return local.toISOString().slice(0,10);
+}
+
+function dropIcon(){
+  return `<svg class="drop" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 2C12 2 5 11 5 15.5C5 19.6 8.4 23 12 23C15.6 23 19 19.6 19 15.5C19 11 12 2 12 2Z" fill="#C9A227"/>
+  </svg>`;
+}
+
+function renderSelect(){
+  currentTab = null;
+  app.innerHTML = `
+    <header>
+      ${dropIcon()}
+      <p class="eyebrow">Truffière</p>
+      <h1>Suivi irrigation</h1>
+    </header>
+    <main>
+      <p class="subtitle">Choisis la parcelle à renseigner.</p>
+      <div class="parcel-grid">
+        ${TABS.map((t,i) => `
+          <button class="parcel-card" data-idx="${i}">
+            <span class="mark"></span>
+            <span class="name">${t.label}</span>
+          </button>
+        `).join("")}
+      </div>
+    </main>
+  `;
+  app.querySelectorAll(".parcel-card").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      currentTab = TABS[parseInt(btn.dataset.idx)];
+      renderLigneSelect();
+    });
+  });
+}
+
+function renderLigneSelect(){
+  currentLigne = null;
+  app.innerHTML = `
+    <header>
+      <div class="back-row">
+        <button class="back-btn" id="backBtn">‹</button>
+      </div>
+      <p class="eyebrow">Parcelle</p>
+      <h1>${currentTab.label}</h1>
+    </header>
+    <main>
+      <p class="subtitle">Quelle ligne veux-tu renseigner ?</p>
+      <div class="parcel-grid">
+        ${currentTab.lignes.map((l,i) => `
+          <button class="parcel-card" data-idx="${i}">
+            <span class="mark"></span>
+            <span class="name">${l.label}${l.caption ? `<br><span style="font-weight:400;font-size:13px;color:var(--ink-soft);">${l.caption}</span>` : ""}</span>
+          </button>
+        `).join("")}
+      </div>
+    </main>
+  `;
+  document.getElementById("backBtn").addEventListener("click", renderSelect);
+  app.querySelectorAll(".parcel-card").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      currentLigne = currentTab.lignes[parseInt(btn.dataset.idx)];
+      sessionLog = [];
+      renderForm();
+    });
+  });
+}
+
+function renderForm(prefill){
+  prefill = prefill || {};
+  const needsSetup = SCRIPT_URL.indexOf("COLLE_ICI") === 0;
+
+  app.innerHTML = `
+    <header>
+      <div class="back-row">
+        <button class="back-btn" id="backBtn">‹</button>
+      </div>
+      <p class="eyebrow">${currentTab.label}</p>
+      <h1>${currentLigne.label}${currentLigne.caption ? ` <span style="font-weight:400;opacity:0.75;">· ${currentLigne.caption}</span>` : ""}</h1>
+    </header>
+    <main>
+      ${needsSetup ? `<div class="setup-banner">⚠️ L'URL du script Google n'est pas encore configurée. Modifie la constante <code>SCRIPT_URL</code> en haut du fichier <code>index.html</code>.</div>` : ""}
+
+      <form id="entryForm">
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="f_date" value="${prefill.date || todayISO()}" required>
+        </div>
+
+        <div class="field">
+          <label>Durée <span class="unit">(heures)</span></label>
+          <input type="number" id="f_duree" inputmode="decimal" step="0.1" min="0" placeholder="ex : 2.5" required>
+        </div>
+
+        <div class="row-2">
+          <div class="field">
+            <label>Compteur début <span class="unit">(m³)</span></label>
+            <input type="number" id="f_debut" inputmode="decimal" step="0.01" min="0" value="${prefill.debut ?? ''}" required>
+          </div>
+          <div class="field">
+            <label>Compteur fin <span class="unit">(m³)</span></label>
+            <input type="number" id="f_fin" inputmode="decimal" step="0.01" min="0" required>
+          </div>
+        </div>
+
+        <div class="field volume">
+          <label>Volume <span class="unit">(M3)</span></label>
+          <input type="number" id="f_vol" inputmode="decimal" step="0.01">
+        </div>
+
+        <button type="submit" class="save-btn" id="saveBtn">Enregistrer</button>
+        <div class="status" id="status"></div>
+      </form>
+
+      <div class="log" id="logSection" style="${sessionLog.length ? '' : 'display:none;'}">
+        <h2>Saisies de cette session</h2>
+        <div id="logList"></div>
+      </div>
+    </main>
+  `;
+
+  document.getElementById("backBtn").addEventListener("click", renderLigneSelect);
+
+  const $debut = document.getElementById("f_debut");
+  const $fin = document.getElementById("f_fin");
+  const $vol = document.getElementById("f_vol");
+
+  function recalc(){
+    const d = parseFloat($debut.value);
+    const f = parseFloat($fin.value);
+    if(!isNaN(d) && !isNaN(f) && f >= d){
+      $vol.value = (f - d).toFixed(2);
+    }
+  }
+  $debut.addEventListener("input", recalc);
+  $fin.addEventListener("input", recalc);
+
+  document.getElementById("entryForm").addEventListener("submit", onSubmit);
+
+  renderLog();
+}
+
+function renderLog(){
+  const list = document.getElementById("logList");
+  const section = document.getElementById("logSection");
+  if(!list) return;
+  if(sessionLog.length === 0){ section.style.display = "none"; return; }
+  section.style.display = "";
+  list.innerHTML = sessionLog.slice().reverse().map(e => `
+    <div class="log-item">
+      <span class="l-date">${e.date}</span>
+      <span class="l-vol">${e.vol} m³</span>
+    </div>
+  `).join("");
+}
+
+async function onSubmit(ev){
+  ev.preventDefault();
+  const statusEl = document.getElementById("status");
+  const saveBtn = document.getElementById("saveBtn");
+
+  if(SCRIPT_URL.indexOf("COLLE_ICI") === 0){
+    statusEl.textContent = "⚠️ Configure d'abord l'URL du script (voir bandeau ci-dessus).";
+    statusEl.className = "status err";
+    return;
+  }
+
+  const payload = {
+    onglet: currentTab.label,
+    ligne: currentLigne.ligne,
+    date: document.getElementById("f_date").value,
+    duree: document.getElementById("f_duree").value,
+    compteur_debut: document.getElementById("f_debut").value,
+    compteur_fin: document.getElementById("f_fin").value,
+    m3: document.getElementById("f_vol").value
+  };
+
+  saveBtn.disabled = true;
+  statusEl.textContent = "Enregistrement…";
+  statusEl.className = "status pending";
+
+  try{
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, // évite le préflight CORS côté Apps Script
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if(data && data.ok){
+      statusEl.textContent = "✓ Enregistré";
+      statusEl.className = "status ok";
+      sessionLog.push({ date: payload.date, vol: payload.m3 });
+
+      // Prépare la saisie suivante : le compteur fin devient le prochain compteur début
+      const nextDebut = payload.compteur_fin;
+      renderForm({ date: payload.date, debut: nextDebut });
+      document.getElementById("status").textContent = "✓ Enregistré";
+      document.getElementById("status").className = "status ok";
+    } else {
+      throw new Error((data && data.error) || "Erreur inconnue");
+    }
+  } catch(err){
+    statusEl.textContent = "✗ Échec de l'envoi — vérifie ta connexion et réessaie.";
+    statusEl.className = "status err";
+    saveBtn.disabled = false;
+  }
+}
+
+// Enregistrement du service worker (installation en tant qu'appli)
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+  });
+}
+
+renderSelect();
+</script>
+</body>
+</html>
